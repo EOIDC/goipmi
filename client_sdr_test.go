@@ -84,7 +84,7 @@ func TestGetSDR(t *testing.T) {
 	r1.Recordid = 5
 	r1.Rtype = SDR_RECORD_TYPE_FULL_SENSOR
 	r1.SDRVersion = 0x51
-	r1.Deviceid = "fullsensor deviceid"
+	r1.Deviceid = "fullsensor"
 	r1.Unit = 0x00
 	r1.SensorNumber = 0x04
 	r1.BaseUnit = 0x12
@@ -107,7 +107,7 @@ func TestGetSDR(t *testing.T) {
 	if err1 == nil {
 		r11 := sdrRecordAndValue1.SDRRecord.(*SDRFullSensor)
 		assert.Equal(t, SDRRecordType(SDR_RECORD_TYPE_FULL_SENSOR), r11.Rtype)
-		assert.Equal(t, "fullsensor deviceid", r11.DeviceId())
+		assert.Equal(t, "fullsensor", r11.DeviceId())
 		assert.Equal(t, uint16(65535), nextRecordId1)
 	}
 
@@ -115,7 +115,7 @@ func TestGetSDR(t *testing.T) {
 	r2.Recordid = 10
 	r2.Rtype = SDR_RECORD_TYPE_COMPACT_SENSOR
 	r2.SDRVersion = 0x51
-	r2.Deviceid = "compactsensor Deviceid"
+	r2.Deviceid = "compactsensor"
 	r2.Unit = 0x00
 	r2.SensorNumber = 0x04
 	r2.BaseUnit = 0x12
@@ -136,7 +136,7 @@ func TestGetSDR(t *testing.T) {
 	if err2 == nil {
 		r22 := sdrRecordAndValue2.SDRRecord.(*SDRCompactSensor)
 		assert.Equal(t, SDRRecordType(SDR_RECORD_TYPE_COMPACT_SENSOR), r22.Rtype)
-		assert.Equal(t, "compactsensor Deviceid", r22.DeviceId())
+		assert.Equal(t, "compactsensor", r22.DeviceId())
 		assert.Equal(t, uint16(65535), nextRecordId2)
 	}
 

@@ -17,7 +17,6 @@ limitations under the License.
 package ipmi
 
 import (
-	"fmt"
 	//"fmt"
 	"math"
 	"math/rand"
@@ -224,7 +223,6 @@ func (s *Simulator) getSensorReading(m *Message) Response {
 			response.SensorReading = uint8(value)
 		}
 		response.CompletionCode = CommandCompleted
-		fmt.Println("rep.avail==", rep.avail)
 		if rep.avail == true {
 			//response.ReadingAvail & 0x20 != 0    (11 10 01 00) 000000
 			response.ReadingAvail = 0x40

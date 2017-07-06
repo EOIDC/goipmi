@@ -132,7 +132,8 @@ func (r *SDRMcDeviceLocator) MarshalBinary() (data []byte, err error) {
 	db := new(bytes.Buffer)
 	binary.Write(hb, binary.LittleEndian, r.SDRRecordHeader)
 	binary.Write(fb, binary.LittleEndian, r.sdrMcDeviceLocatorFields)
-	db.WriteByte(byte(len(r.DeviceId())))
+	idl := generateIdLen(uint8(len(r.DeviceId())))
+	db.WriteByte(idl)
 	db.WriteString(r.DeviceId())
 
 	//merge all
@@ -193,7 +194,8 @@ func (r *SDRFruDeviceLocator) MarshalBinary() (data []byte, err error) {
 	db := new(bytes.Buffer)
 	binary.Write(hb, binary.LittleEndian, r.SDRRecordHeader)
 	binary.Write(fb, binary.LittleEndian, r.sdrFruDeviceLocatorFields)
-	db.WriteByte(byte(len(r.DeviceId())))
+	idl := generateIdLen(uint8(len(r.DeviceId())))
+	db.WriteByte(idl)
 	db.WriteString(r.DeviceId())
 
 	//merge all
@@ -382,13 +384,24 @@ func (r *SDRFullSensor) CalValue(value float64) uint8 {
 	}
 }
 
+//parse id string len, get type and actual len
+// section 43.15
+func parseIdLen(len uint8) uint8 {
+	return len & 0x0f
+}
+
+func generateIdLen(len uint8) uint8 {
+	return len | 0xc0
+}
+
 func (r *SDRFullSensor) MarshalBinary() (data []byte, err error) {
 	hb := new(bytes.Buffer)
 	fb := new(bytes.Buffer)
 	db := new(bytes.Buffer)
 	binary.Write(hb, binary.LittleEndian, r.SDRRecordHeader)
 	binary.Write(fb, binary.LittleEndian, r.sdrFullSensorFields)
-	db.WriteByte(byte(len(r.DeviceId())))
+	idl := generateIdLen(uint8(len(r.DeviceId())))
+	db.WriteByte(idl)
 	db.WriteString(r.DeviceId())
 
 	//merge all
@@ -418,6 +431,8 @@ func (r *SDRFullSensor) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
+
+	idLen = parseIdLen(idLen)
 
 	id := make([]byte, int(idLen))
 	n, err := buffer.Read(id)
@@ -478,7 +493,8 @@ func (r *SDRCompactSensor) MarshalBinary() (data []byte, err error) {
 	db := new(bytes.Buffer)
 	binary.Write(hb, binary.LittleEndian, r.SDRRecordHeader)
 	binary.Write(fb, binary.LittleEndian, r.sdrCompactSensorFields)
-	db.WriteByte(byte(len(r.DeviceId())))
+	idl := generateIdLen(uint8(len(r.DeviceId())))
+	db.WriteByte(idl)
 	db.WriteString(r.DeviceId())
 
 	//merge all
@@ -518,6 +534,8 @@ func (r *SDRCompactSensor) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
+
+	idLen = parseIdLen(idLen)
 
 	id := make([]byte, int(idLen))
 	n, err := buffer.Read(id)
