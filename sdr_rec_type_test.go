@@ -49,7 +49,7 @@ func TestSDRRecType_McDeviceLocator(t *testing.T) {
 	assert.Equal(t, byte(0x00), data[1])
 	assert.Equal(t, byte(SDR_RECORD_TYPE_MC_DEVICE_LOCATOR), data[3])
 	assert.Equal(t, byte(flen+1+len(deviceId)), data[4])
-	assert.Equal(t, byte(len(deviceId)), data[flen+1+4])
+	assert.Equal(t, byte(len(deviceId))|0xc0, data[flen+1+4])
 	assert.Equal(t, deviceId, string(data[flen+1+4+1:]))
 }
 
@@ -108,7 +108,7 @@ func TestSDRRecType_FullSensor(t *testing.T) {
 	assert.Equal(t, byte(0x01), data[1])
 	assert.Equal(t, byte(SDR_RECORD_TYPE_FULL_SENSOR), data[3])
 	assert.Equal(t, byte(flen+1+len(deviceId)), data[4])
-	assert.Equal(t, byte(len(deviceId)), data[flen+1+4])
+	assert.Equal(t, byte(len(deviceId))|0xc0, data[flen+1+4])
 	assert.Equal(t, deviceId, string(data[flen+1+4+1:]))
 
 	//test M,B

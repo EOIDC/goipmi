@@ -2,6 +2,8 @@ package ipmi
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"math"
 )
 
@@ -136,6 +138,8 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 			sdrRecordAndValue.value = res
 		}
 		return sdrRecordAndValue, err
+	} else {
+		return nil, errors.New(fmt.Sprintf("Unsupport Record Type %d", recordType))
 	}
 	return nil, nil
 }
