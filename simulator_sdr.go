@@ -32,8 +32,10 @@ const sdrOpSupport = SDR_OP_SUP_RESERVE_REPO
 // combine the SDRRecord and a float64 value
 type sDRRecordAndValue struct {
 	SDRRecord
-	value float64
-	avail bool
+	value          float64
+	avail          bool
+	sensorStatDesc string
+	sensorEvent    [16]string
 }
 
 type repo struct {
@@ -53,7 +55,7 @@ func (rep *repo) initRepoData() {
 	r1.BaseUnit = 0x12
 	r1.EntityId = 0x37
 	r1.EntityIns = 0x01
-	r1.SensorType = SDR_SENSOR_TYPECODES_TEMPERATURE
+	r1.SensorType = SDR_SENSOR_TYPECODES_PROCESSOR
 	r1.BaseUnit = 0x01
 
 	r1.SensorNumber = 0x04
@@ -63,6 +65,8 @@ func (rep *repo) initRepoData() {
 		SDRRecord: r1,
 		value:     2583.0,
 		avail:     true,
+		sensorStatDesc:"test",
+		sensorEvent:[16]string{""},
 	})
 
 	r2, _ := NewSDRFullSensor(2, "CPU1 DTS")
@@ -75,6 +79,8 @@ func (rep *repo) initRepoData() {
 		SDRRecord: r2,
 		value:     -49.0,
 		avail:     true,
+		sensorStatDesc:"test",
+		sensorEvent:[16]string{""},
 	})
 	//todo 测试更多类型的sensorRecord
 	//	r4, _ := NewSDRFullSensor(2, "CPU1 DTS")

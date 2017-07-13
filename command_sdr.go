@@ -53,10 +53,10 @@ type GetSensorReadingRequest struct {
 // section 35.14
 type GetSensorReadingResponse struct {
 	CompletionCode
-	SensorReading      uint8
-	ReadingAvail       uint8
-	ForThresDiscreStat uint8
-	ForDiscreteState   uint8
+	SensorReading uint8
+	ReadingAvail  uint8
+	Data1         uint8
+	Data2         uint8
 }
 
 func (r *GetSDRCommandResponse) MarshalBinary() (data []byte, err error) {
