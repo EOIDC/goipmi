@@ -3,16 +3,18 @@ package ipmi
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math"
+	"fmt"
 )
 
 type SdrSensorInfo struct {
-	SensorType string
-	BaseUnit   string
-	Value      float64
-	DeviceId   string
-	Avail      bool
+	SensorType  string
+	BaseUnit    string
+	Value       float64
+	DeviceId    string
+	StatusDesc  string
+	SensorEvent []string
+	Avail       bool
 }
 
 // RepositoryInfo get the Repository Info of the SDR
@@ -33,36 +35,91 @@ func (c *Client) GetReserveSDRRepoForReserveId() (*ReserveRepositoryResponse, er
 	}
 	res := &ReserveRepositoryResponse{}
 	return res, c.send(req, res)
-
 }
+func GetSensorStatDesc(readingType SDRSensorReadingType, sensorType SDRSensorType, state2 uint8, state3 uint8) (string, []string) {
+	sensorStatDescStr := ""
+	sensorEven := []string{}
+	//sensorEven := make([]string,0,16)
+	if readingType == SENSOR_READTYPE_THREADHOLD {
+		if (state2 & SDR_SENSOR_STAT_LO_NR) != 0 {
+			sensorStatDescStr = "Lower Non-Recoverable"
+		} else if (state2 & SDR_SENSOR_STAT_HI_NR) != 0 {
+			sensorStatDescStr = "Upper Non-Recoverable"
+		} else if (state2 & SDR_SENSOR_STAT_LO_CR) != 0 {
+			sensorStatDescStr = "Lower Critical"
+		} else if (state2 & SDR_SENSOR_STAT_HI_CR) != 0 {
+			sensorStatDescStr = "Upper Critical"
+		} else if (state2 & SDR_SENSOR_STAT_LO_NC) != 0 {
+			sensorStatDescStr = "Lower Non-Critical"
+		} else if (state2 & SDR_SENSOR_STAT_HI_NC) != 0 {
+			sensorStatDescStr = "Upper Non-Critical"
+		} else {
+			sensorStatDescStr = "ok"
+		}
+	} else if readingType >= SENSOR_READTYPE_GENERIC_L && readingType <= SENSOR_READTYPE_GENERIC_H {
+		var i uint8 = 0
+		for ; i < 8; i++ {
+			if (state2 & (1 << i)) != 0 {
+				sensorEven = append(sensorEven, (discreteSensorStatDesc[uint8(readingType)])[i])
+			}
+		}
+		for i = 0; i < 8; i++ {
+			if (state3 & (1 << i)) != 0 {
+				sensorEven = append(sensorEven, (discreteSensorStatDesc[uint8(readingType)])[i+8])
+			}
+		}
+	} else if readingType == SENSOR_READTYPE_SENSORSPECIF {
+		var i uint8 = 0
+		for ; i < 8; i++ {
+			if (state2 & (1 << i)) != 0 {
+				sensorEven = append(sensorEven, (sensorTypeCodeEvent[uint8(sensorType)])[i])
+			}
+		}
+		i = 0
+		for ; i < 8; i++ {
+			if (state3 & (1 << i)) != 0 {
+				sensorEven = append(sensorEven, (sensorTypeCodeEvent[uint8(sensorType)])[i+8])
+			}
+		}
+	}
+	return sensorStatDescStr, sensorEven
+}
+
 func (c *Client) GetSensorList(reservationID uint16) ([]SdrSensorInfo, error) {
 	var recordId uint16 = 0
 	var sdrSensorInfolist = make([]SdrSensorInfo, 0, 30)
 	for recordId < 0xffff {
 		sdrRecordAndValue, nId, err := c.GetSDR(reservationID, recordId)
-		if err == nil {
-			if fullSensor, ok1 := sdrRecordAndValue.SDRRecord.(*SDRFullSensor); ok1 {
-				if fullSensor.BaseUnit >= 0 && fullSensor.BaseUnit < uint8(len(sdrRecordValueBasicUnit)) &&
-					fullSensor.SensorType >= 0 && uint8(fullSensor.SensorType) < uint8(len(sdrRecordValueSensorType)) {
-					sdrSensorInfolist = append(sdrSensorInfolist, SdrSensorInfo{
-						sdrRecordValueSensorType[fullSensor.SensorType],
-						sdrRecordValueBasicUnit[fullSensor.BaseUnit],
-						sdrRecordAndValue.value,
-						fullSensor.Deviceid,
-						sdrRecordAndValue.avail,
-					})
-				}
-			} else if compactSensor, ok2 := sdrRecordAndValue.SDRRecord.(*SDRCompactSensor); ok2 {
-				if compactSensor.BaseUnit >= 0 && compactSensor.BaseUnit < uint8(len(sdrRecordValueBasicUnit)) &&
-					compactSensor.SensorType >= 0 && uint8(compactSensor.SensorType) < uint8(len(sdrRecordValueSensorType)) {
-					sdrSensorInfolist = append(sdrSensorInfolist, SdrSensorInfo{
-						sdrRecordValueSensorType[compactSensor.SensorType],
-						sdrRecordValueBasicUnit[compactSensor.BaseUnit],
-						sdrRecordAndValue.value,
-						compactSensor.Deviceid,
-						sdrRecordAndValue.avail,
-					})
-				}
+		if err != nil {
+			recordId = nId
+			continue
+		}
+		if fullSensor, ok1 := sdrRecordAndValue.SDRRecord.(*SDRFullSensor); ok1 {
+			if fullSensor.BaseUnit >= 0 && fullSensor.BaseUnit < uint8(len(sdrRecordValueBasicUnit)) &&
+				fullSensor.SensorType >= 0 && uint8(fullSensor.SensorType) < uint8(len(sdrRecordValueSensorType)) {
+
+				sdrSensorInfolist = append(sdrSensorInfolist, SdrSensorInfo{
+					sdrRecordValueSensorType[fullSensor.SensorType],
+					sdrRecordValueBasicUnit[fullSensor.BaseUnit],
+					sdrRecordAndValue.value,
+					fullSensor.Deviceid,
+					sdrRecordAndValue.sensorStatDesc,
+					sdrRecordAndValue.sensorEvent,
+					sdrRecordAndValue.avail,
+				})
+			}
+		} else if compactSensor, ok2 := sdrRecordAndValue.SDRRecord.(*SDRCompactSensor); ok2 {
+			if compactSensor.BaseUnit >= 0 && compactSensor.BaseUnit < uint8(len(sdrRecordValueBasicUnit)) &&
+				compactSensor.SensorType >= 0 && uint8(compactSensor.SensorType) < uint8(len(sdrRecordValueSensorType)) {
+				sdrSensorInfolist = append(sdrSensorInfolist, SdrSensorInfo{
+					sdrRecordValueSensorType[compactSensor.SensorType],
+					sdrRecordValueBasicUnit[compactSensor.BaseUnit],
+					sdrRecordAndValue.value,
+					compactSensor.Deviceid,
+					sdrRecordAndValue.sensorStatDesc,
+					sdrRecordAndValue.sensorEvent,
+					sdrRecordAndValue.avail,
+				})
 			}
 		}
 		recordId = nId
@@ -110,15 +167,18 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 	if recordType == SDR_RECORD_TYPE_FULL_SENSOR {
 		//Unmarshalbinary and assert
 		fullSensor, _ := NewSDRFullSensor(0, "")
-
 		fullSensor.UnmarshalBinary(recordKeyBody_Data.Bytes())
 		sdrRecordAndValue.SDRRecord = fullSensor
-		sensorReading, err := c.getSensorReading(fullSensor.SensorNumber)
-		if err != nil {
+		sensorReadingRes, err := c.getSensorReading(fullSensor.SensorNumber)
+		if err != nil || (sensorReadingRes.ReadingAvail&0x20) == 0 {
 			sdrRecordAndValue.avail = false
 			sdrRecordAndValue.value = 0.00
+			sdrRecordAndValue.sensorStatDesc = "Not Available"
+			sdrRecordAndValue.sensorStatDesc=""
+			sdrRecordAndValue.sensorEvent=[]string{""}
 		} else {
-			res, avai := calFullSensorValue(fullSensor, sensorReading)
+			res, avai := calFullSensorValue(fullSensor, sensorReadingRes.SensorReading)
+			sdrRecordAndValue.sensorStatDesc, sdrRecordAndValue.sensorEvent = GetSensorStatDesc(fullSensor.ReadingType, fullSensor.SensorType, sensorReadingRes.Data1, sensorReadingRes.Data2)
 			sdrRecordAndValue.avail = avai
 			sdrRecordAndValue.value = res
 		}
@@ -128,12 +188,15 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 		compactSensor, _ := NewSDRCompactSensor(0, "")
 		compactSensor.UnmarshalBinary(recordKeyBody_Data.Bytes())
 		sdrRecordAndValue.SDRRecord = compactSensor
-		sensorReading, err := c.getSensorReading(compactSensor.SensorNumber)
-		if err != nil {
+		sensorReadingRes, err := c.getSensorReading(compactSensor.SensorNumber)
+		if err != nil || (sensorReadingRes.ReadingAvail&0x20) == 0 {
 			sdrRecordAndValue.avail = false
 			sdrRecordAndValue.value = 0.00
+			sdrRecordAndValue.sensorStatDesc=""
+			sdrRecordAndValue.sensorEvent=[]string{""}
 		} else {
-			res, avai := calCompactSensorValue(compactSensor, sensorReading)
+			res, avai := calCompactSensorValue(compactSensor, sensorReadingRes.SensorReading)
+			sdrRecordAndValue.sensorStatDesc, sdrRecordAndValue.sensorEvent = GetSensorStatDesc(compactSensor.ReadingType, compactSensor.SensorType, sensorReadingRes.Data1, sensorReadingRes.Data2)
 			sdrRecordAndValue.avail = avai
 			sdrRecordAndValue.value = res
 		}
@@ -155,9 +218,14 @@ func calFullSensorValue(sdrRecord SDRRecord, sensorReading uint8) (float64, bool
 				switch (fullSensor.Unit & 0xc0) >> 6 {
 				case 0:
 					result = (float64(m)*float64(sensorReading) + float64(b)*math.Pow(10, float64(bexp))) * math.Pow(10, float64(rexp))
+					break
 				case 1:
+					if (sensorReading & 0x80) == 0 {
+						sensorReading++
+					}
 				case 2:
 					result = (float64(int8(m)*int8(sensorReading)) + float64(b)*math.Pow(10, float64(rexp))) * math.Pow(10, float64(bexp))
+					break
 				}
 				avail = true
 			} else {
@@ -207,7 +275,7 @@ func calCompactSensorValue(sdrRecord SDRRecord, sensorReading uint8) (float64, b
 }
 
 //Get Sensor Reading  35.14
-func (c *Client) getSensorReading(sensorNum uint8) (sensorReading uint8, err error) {
+func (c *Client) getSensorReading(sensorNum uint8) (*GetSensorReadingResponse, error) {
 	req := &Request{
 		NetworkFunctionSensorEvent,
 		CommandGetSensorReading,
@@ -218,11 +286,12 @@ func (c *Client) getSensorReading(sensorNum uint8) (sensorReading uint8, err err
 	res := &GetSensorReadingResponse{}
 	c.Send(req, res)
 	if res == nil {
-		return uint8(0), ErrNotFoundTheSensorNum
+		return nil, ErrNotFoundTheSensorNum
 	}
-	if (res.ReadingAvail & 0x20) == 0 {
-		readValue := res.SensorReading
-		return readValue, nil
-	}
-	return uint8(0), ErrSensorReadUnavail
+	//if (res.ReadingAvail & 0x20) == 0 {
+	//	readValue := res.SensorReading
+	//	return readValue, nil
+	//}
+	//return uint8(0), ErrSensorReadUnavail
+	return res, nil
 }

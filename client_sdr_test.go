@@ -1,10 +1,10 @@
 package ipmi
 
+//
 import (
+	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRepositoryInfo(t *testing.T) {
@@ -87,6 +87,7 @@ func TestGetSDR(t *testing.T) {
 	r1.Deviceid = "fullsensor"
 	r1.Unit = 0x00
 	r1.SensorNumber = 0x04
+	r1.SensorType = SDR_SENSOR_TYPECODES_PROCESSOR
 	r1.BaseUnit = 0x12
 	r1.SetMBExp(63, 0, 0, 0)
 	data1, _ := r1.MarshalBinary()
@@ -103,6 +104,7 @@ func TestGetSDR(t *testing.T) {
 		response.ReadData = data1[request.OffsetIntoRecord : request.OffsetIntoRecord+request.ByteToRead]
 		return response
 	})
+
 	sdrRecordAndValue1, nextRecordId1, err1 := client.GetSDR(reserve.ReservationId, 0)
 	if err1 == nil {
 		r11 := sdrRecordAndValue1.SDRRecord.(*SDRFullSensor)
@@ -198,14 +200,17 @@ func TestGetSensorReading(t *testing.T) {
 		return &GetSensorReadingResponse{
 			CompletionCode: CommandCompleted,
 			SensorReading:  56,
+			ReadingAvail:0xc0,
+			Data1:0xc0,
+			Data2:0x00,
 		}
 	})
 
 	err = client.Open()
 	assert.NoError(t, err)
 
-	if SensorReading, err := client.getSensorReading(0x04); err == nil {
-		assert.Equal(t, uint8(56), SensorReading)
+	if res, err := client.getSensorReading(0x04); err == nil {
+		assert.Equal(t, uint8(56), res.SensorReading)
 	}
 }
 
@@ -255,22 +260,52 @@ func TestGetSensorList(t *testing.T) {
 	res_senReading.CompletionCode = CommandCompleted
 	res_senReading.SensorReading = 0x2a
 	res_senReading.ReadingAvail = 0xc0
+	res_senReading.Data1 = 0xc0
+	res_senReading.Data2 = 0x00
 	s.SetHandler(NetworkFunctionSensorEvent, CommandGetSensorReading, func(m *Message) Response {
 		return res_senReading
 	})
 
 	sdrSensorInfoList, err := client.GetSensorList(reserve.ReservationId)
 	assert.Equal(t, nil, err)
+
 	if err == nil {
 		assert.Equal(t, 1, len(sdrSensorInfoList))
 		if len(sdrSensorInfoList) >= 1 {
 			assert.Equal(t, "Fan", sdrSensorInfoList[0].SensorType)
-			assert.Equal(t, float64(2646), sdrSensorInfoList[0].Value)
+			assert.Equal(t, float64(0), sdrSensorInfoList[0].Value)
 			assert.Equal(t, "Fan 5", sdrSensorInfoList[0].DeviceId)
 			assert.Equal(t, "RPM", sdrSensorInfoList[0].BaseUnit)
-			assert.Equal(t, true, sdrSensorInfoList[0].Avail)
+			assert.Equal(t, false, sdrSensorInfoList[0].Avail)
 		}
-
 	}
+}
+
+func TestGetSensorStatDesc(t *testing.T) {
+	var readingType SDRSensorReadingType = SENSOR_READTYPE_THREADHOLD
+	var sensorType SDRSensorType
+	var state2 uint8 = 0x20
+	var state3 uint8 = 0x00
+	var sensorStatDescStr string
+	var sensorEve  []string
+	var sensorEve2 []string
+
+	sensorStatDescStr, sensorEve = GetSensorStatDesc(readingType, SDRSensorType(0x00), state2, uint8(0))
+	assert.Equal(t, sensorStatDescStr, "Upper Non-Recoverable")
+
+	readingType = 0x0b
+	sensorType = SDR_SENSOR_TYPECODES_MEMORY
+	state2 = 0x7f
+	state3 = 0x00
+	sensorStatDescStr, sensorEve = GetSensorStatDesc(readingType, sensorType, state2, state3)
+	assert.Equal(t,"Non-redundant:Sufficient Resources from Redundant",sensorEve[3])
+
+	readingType = 0x6f
+	sensorType = SDR_SENSOR_TYPECODES_CRITICALINTERRUPT
+	state2 = 0xfc
+	state3 = 0x03
+	sensorStatDescStr, sensorEve2 = GetSensorStatDesc(readingType, sensorType, state2, state3)
+	assert.Equal(t,"PCI SERR",sensorEve2[3])
+	assert.Equal(t,8,len(sensorEve2))
 
 }
