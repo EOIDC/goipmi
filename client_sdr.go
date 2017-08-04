@@ -9,12 +9,15 @@ import (
 
 type SdrSensorInfo struct {
 	SensorType  string
+	ReadingType SDRSensorReadingType
 	BaseUnit    string
 	Value       float64
 	DeviceId    string
 	StatusDesc  string
 	SensorEvent []string
 	Avail       bool
+	Data1	    uint8
+	Data2	    uint8
 }
 
 // RepositoryInfo get the Repository Info of the SDR
@@ -100,12 +103,15 @@ func (c *Client) GetSensorList(reservationID uint16) ([]SdrSensorInfo, error) {
 
 				sdrSensorInfolist = append(sdrSensorInfolist, SdrSensorInfo{
 					sdrRecordValueSensorType[fullSensor.SensorType],
+					fullSensor.ReadingType,
 					sdrRecordValueBasicUnit[fullSensor.BaseUnit],
 					sdrRecordAndValue.value,
 					fullSensor.Deviceid,
 					sdrRecordAndValue.sensorStatDesc,
 					sdrRecordAndValue.sensorEvent,
 					sdrRecordAndValue.avail,
+					sdrRecordAndValue.data1,
+					sdrRecordAndValue.data2,
 				})
 			}
 		} else if compactSensor, ok2 := sdrRecordAndValue.SDRRecord.(*SDRCompactSensor); ok2 {
@@ -113,12 +119,15 @@ func (c *Client) GetSensorList(reservationID uint16) ([]SdrSensorInfo, error) {
 				compactSensor.SensorType >= 0 && uint8(compactSensor.SensorType) < uint8(len(sdrRecordValueSensorType)) {
 				sdrSensorInfolist = append(sdrSensorInfolist, SdrSensorInfo{
 					sdrRecordValueSensorType[compactSensor.SensorType],
+					compactSensor.ReadingType,
 					sdrRecordValueBasicUnit[compactSensor.BaseUnit],
 					sdrRecordAndValue.value,
 					compactSensor.Deviceid,
 					sdrRecordAndValue.sensorStatDesc,
 					sdrRecordAndValue.sensorEvent,
 					sdrRecordAndValue.avail,
+					sdrRecordAndValue.data1,
+					sdrRecordAndValue.data2,
 				})
 			}
 		}
@@ -194,11 +203,15 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 			sdrRecordAndValue.value = 0.00
 			sdrRecordAndValue.sensorStatDesc=""
 			sdrRecordAndValue.sensorEvent=[]string{""}
+			sdrRecordAndValue.data1 = sensorReadingRes.Data1
+			sdrRecordAndValue.data2 = sensorReadingRes.Data2
 		} else {
 			res, avai := calCompactSensorValue(compactSensor, sensorReadingRes.SensorReading)
 			sdrRecordAndValue.sensorStatDesc, sdrRecordAndValue.sensorEvent = GetSensorStatDesc(compactSensor.ReadingType, compactSensor.SensorType, sensorReadingRes.Data1, sensorReadingRes.Data2)
 			sdrRecordAndValue.avail = avai
 			sdrRecordAndValue.value = res
+			sdrRecordAndValue.data1 = sensorReadingRes.Data1
+			sdrRecordAndValue.data2 = sensorReadingRes.Data2
 		}
 		return sdrRecordAndValue, err
 	} else {

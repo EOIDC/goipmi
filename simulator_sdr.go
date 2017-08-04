@@ -35,6 +35,8 @@ type sDRRecordAndValue struct {
 	avail          bool
 	sensorStatDesc string
 	sensorEvent    []string
+	data1		   uint8
+	data2		   uint8
 }
 
 type repo struct {
