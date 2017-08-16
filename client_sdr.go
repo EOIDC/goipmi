@@ -3,8 +3,8 @@ package ipmi
 import (
 	"bytes"
 	"errors"
-	"math"
 	"fmt"
+	"math"
 )
 
 type SdrSensorInfo struct {
@@ -16,8 +16,8 @@ type SdrSensorInfo struct {
 	StatusDesc  string
 	SensorEvent []string
 	Avail       bool
-	Data1	    uint8
-	Data2	    uint8
+	Data1       uint8
+	Data2       uint8
 }
 
 // RepositoryInfo get the Repository Info of the SDR
@@ -179,12 +179,11 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 		fullSensor.UnmarshalBinary(recordKeyBody_Data.Bytes())
 		sdrRecordAndValue.SDRRecord = fullSensor
 		sensorReadingRes, err := c.getSensorReading(fullSensor.SensorNumber)
-		if err != nil || (sensorReadingRes.ReadingAvail&0x20) == 0 {
+		if err != nil || (sensorReadingRes.ReadingAvail&0x20) > 0 {
 			sdrRecordAndValue.avail = false
 			sdrRecordAndValue.value = 0.00
 			sdrRecordAndValue.sensorStatDesc = "Not Available"
-			sdrRecordAndValue.sensorStatDesc=""
-			sdrRecordAndValue.sensorEvent=[]string{""}
+			sdrRecordAndValue.sensorEvent = []string{""}
 		} else {
 			res, avai := calFullSensorValue(fullSensor, sensorReadingRes.SensorReading)
 			sdrRecordAndValue.sensorStatDesc, sdrRecordAndValue.sensorEvent = GetSensorStatDesc(fullSensor.ReadingType, fullSensor.SensorType, sensorReadingRes.Data1, sensorReadingRes.Data2)
@@ -198,11 +197,11 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 		compactSensor.UnmarshalBinary(recordKeyBody_Data.Bytes())
 		sdrRecordAndValue.SDRRecord = compactSensor
 		sensorReadingRes, err := c.getSensorReading(compactSensor.SensorNumber)
-		if err != nil || (sensorReadingRes.ReadingAvail&0x20) == 0 {
+		if err != nil || (sensorReadingRes.ReadingAvail&0x20) > 0 {
 			sdrRecordAndValue.avail = false
 			sdrRecordAndValue.value = 0.00
-			sdrRecordAndValue.sensorStatDesc=""
-			sdrRecordAndValue.sensorEvent=[]string{""}
+			sdrRecordAndValue.sensorStatDesc = ""
+			sdrRecordAndValue.sensorEvent = []string{""}
 			sdrRecordAndValue.data1 = sensorReadingRes.Data1
 			sdrRecordAndValue.data2 = sensorReadingRes.Data2
 		} else {
