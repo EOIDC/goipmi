@@ -138,6 +138,7 @@ func (c *Client) GetSensorList(reservationID uint16) ([]SdrSensorInfo, error) {
 
 //Get SDR Command  33.12
 func (c *Client) GetSDR(reservationID uint16, recordID uint16) (sdr *sDRRecordAndValue, next uint16, err error) {
+	var _err error
 	req_step1 := &Request{
 		NetworkFunctionStorge,
 		CommandGetSDR,
@@ -150,7 +151,10 @@ func (c *Client) GetSDR(reservationID uint16, recordID uint16) (sdr *sDRRecordAn
 	}
 	recordKeyBody_Data := new(bytes.Buffer)
 	res_step1 := &GetSDRCommandResponse{}
-	c.Send(req_step1, res_step1)
+    _err = c.Send(req_step1, res_step1)
+    if _err != nil {
+		return nil, 0, _err
+    }
 	readData_step1 := res_step1.ReadData
 	recordType := readData_step1[3]
 	lenToRead_step2 := readData_step1[4]
@@ -166,7 +170,10 @@ func (c *Client) GetSDR(reservationID uint16, recordID uint16) (sdr *sDRRecordAn
 		},
 	}
 	res_step2 := &GetSDRCommandResponse{}
-	c.Send(req_step2, res_step2)
+    _err = c.Send(req_step2, res_step2)
+    if _err != nil {
+		return nil, 0, _err
+    }
 	recordKeyBody_Data.Write(res_step2.ReadData)
 	sdrRecordAndValue, err := c.CalSdrRecordValue(recordType, recordKeyBody_Data)
 	return sdrRecordAndValue, res_step2.NextRecordID, err
