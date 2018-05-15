@@ -94,10 +94,14 @@ func (c *Client) GetSensorList(reservationID uint16) ([]SdrSensorInfo, error) {
 	for recordId < 0xffff {
 		sdrRecordAndValue, nId, err := c.GetSDR(reservationID, recordId)
 		if err != nil {
-			//if error, break everything instead of skip. i.e. when recordId=0 failed, we will always fetch recordId=0 and dead loop
-			return sdrSensorInfolist, err
-			//recordId = nId
-			//continue
+			//if error, and sdrRecordAndValue is nil, means the error is unknown. so  break everything instead of skip. i.e. when recordId=0 failed, we will always fetch recordId=0 and dead loop
+			if ( sdrRecordAndValue == nil ) {
+				return sdrSensorInfolist, err
+			}
+
+			//if record type not support sdrrecordandvalue will be not nil
+			recordId = nId
+			continue
 		}
 		if fullSensor, ok1 := sdrRecordAndValue.SDRRecord.(*SDRFullSensor); ok1 {
 			if fullSensor.BaseUnit >= 0 && fullSensor.BaseUnit < uint8(len(sdrRecordValueBasicUnit)) &&
@@ -223,7 +227,7 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 		}
 		return sdrRecordAndValue, err
 	} else {
-		return nil, errors.New(fmt.Sprintf("Unsupport Record Type %d", recordType))
+		return sdrRecordAndValue, errors.New(fmt.Sprintf("Unsupport Record Type %d", recordType))
 	}
 	return nil, nil
 }
