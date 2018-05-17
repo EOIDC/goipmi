@@ -35,6 +35,8 @@ func newTransport(c *Connection) (transport, error) {
 		return newToolTransport(c), nil
 	case "lanplus":
 		return newToolTransport(c), nil
+	case "open":
+		return newOpenTransport(c), nil
 	default:
 		return nil, fmt.Errorf("unsupported interface: %s", c.Interface)
 	}
