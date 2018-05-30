@@ -62,7 +62,11 @@ func (l *local) send(req *Request, resp Response) error {
 		return errors.New(fmt.Sprintf("Faild to write command and recv from local ipmi driver, errno is %d", rv))
 	}
 	respData := C.GoBytes(unsafe.Pointer(&response.data), response.data_len)
-	messageDataFromBytes(respData, resp)
+	if ( CompletionCode(respData[0]) != CommandCompleted ) {
+		return CompletionCode(respData[0])
+	} else {
+		messageDataFromBytes(respData, resp)
+	}
 	return nil
 }
 
