@@ -273,10 +273,10 @@ func TestGetSensorList(t *testing.T) {
 		assert.Equal(t, 1, len(sdrSensorInfoList))
 		if len(sdrSensorInfoList) >= 1 {
 			assert.Equal(t, "Fan", sdrSensorInfoList[0].SensorType)
-			assert.Equal(t, float64(0), sdrSensorInfoList[0].Value)
+			assert.Equal(t, float64(2646), sdrSensorInfoList[0].Value)
 			assert.Equal(t, "Fan 5", sdrSensorInfoList[0].DeviceId)
 			assert.Equal(t, "RPM", sdrSensorInfoList[0].BaseUnit)
-			assert.Equal(t, false, sdrSensorInfoList[0].Avail)
+			assert.Equal(t, true, sdrSensorInfoList[0].Avail)
 		}
 	}
 }

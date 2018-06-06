@@ -65,9 +65,8 @@ func (l *local) send(req *Request, resp Response) error {
 	if ( CompletionCode(respData[0]) != CommandCompleted ) {
 		return CompletionCode(respData[0])
 	} else {
-		messageDataFromBytes(respData, resp)
+		return messageDataFromBytes(respData, resp)
 	}
-	return nil
 }
 
 func (l *local) Console() error {

@@ -74,8 +74,15 @@ func (r *GetSDRCommandResponse) UnmarshalBinary(data []byte) error {
 
 	var cc CompletionCode
 	var nrid uint16
-	binary.Read(buffer, binary.LittleEndian, &cc)
-	binary.Read(buffer, binary.LittleEndian, &nrid)
+	var err error
+	err = binary.Read(buffer, binary.LittleEndian, &cc)
+	if err != nil {
+		return err
+	}
+	err = binary.Read(buffer, binary.LittleEndian, &nrid)
+	if err != nil {
+		return err
+	}
 	r.CompletionCode = cc
 	r.NextRecordID = nrid
 	r.ReadData = data[3:]
