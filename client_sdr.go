@@ -162,6 +162,9 @@ func (c *Client) GetSDR(reservationID uint16, recordID uint16) (sdr *sDRRecordAn
 		return nil, 0, _err
     }
 	readData_step1 := res_step1.ReadData
+	if len(readData_step1) < 5 {
+		return nil, 0, errors.New(fmt.Sprintf("got invalid SDR header(length < 5): %v",readData_step1))
+	}
 	recordType := readData_step1[3]
 	lenToRead_step2 := readData_step1[4]
 	recordKeyBody_Data.Write(readData_step1)
