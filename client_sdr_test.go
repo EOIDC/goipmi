@@ -184,7 +184,7 @@ func TestCalCompactSensorValue(t *testing.T) {
 	cs1.Unit = 0xc0
 	res, avail := calCompactSensorValue(cs1, 0x11)
 	assert.Equal(t, float64(17), res)
-	assert.Equal(t, true, avail)
+	assert.Equal(t, false, avail)
 }
 func TestGetSensorReading(t *testing.T) {
 

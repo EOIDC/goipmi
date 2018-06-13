@@ -39,8 +39,10 @@ func (c *Client) GetReserveSDRRepoForReserveId() (*ReserveRepositoryResponse, er
 	res := &ReserveRepositoryResponse{}
 	return res, c.send(req, res)
 }
+
+// must pass reading with read_valid is true
 func GetSensorStatDesc(readingType SDRSensorReadingType, sensorType SDRSensorType, state2 uint8, state3 uint8) (string, []string) {
-	sensorStatDescStr := ""
+	sensorStatDescStr := "ok"
 	sensorEven := []string{}
 	//sensorEven := make([]string,0,16)
 	if readingType == SENSOR_READTYPE_THREADHOLD {
@@ -198,12 +200,12 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 		if err != nil || (sensorReadingRes.ReadingAvail&0x20) > 0 {
 			sdrRecordAndValue.avail = false
 			sdrRecordAndValue.value = 0.00
-			sdrRecordAndValue.sensorStatDesc = "Not Available"
+			sdrRecordAndValue.sensorStatDesc = "ns"
 			sdrRecordAndValue.sensorEvent = []string{""}
 		} else {
-			res, avai := calFullSensorValue(fullSensor, sensorReadingRes.SensorReading)
+			res, _ := calFullSensorValue(fullSensor, sensorReadingRes.SensorReading)
 			sdrRecordAndValue.sensorStatDesc, sdrRecordAndValue.sensorEvent = GetSensorStatDesc(fullSensor.ReadingType, fullSensor.SensorType, sensorReadingRes.Data1, sensorReadingRes.Data2)
-			sdrRecordAndValue.avail = avai
+			sdrRecordAndValue.avail = true
 			sdrRecordAndValue.value = res
 		}
 		return sdrRecordAndValue, err
@@ -216,14 +218,14 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 		if err != nil || (sensorReadingRes.ReadingAvail&0x20) > 0 {
 			sdrRecordAndValue.avail = false
 			sdrRecordAndValue.value = 0.00
-			sdrRecordAndValue.sensorStatDesc = ""
+			sdrRecordAndValue.sensorStatDesc = "ns"
 			sdrRecordAndValue.sensorEvent = []string{""}
 			sdrRecordAndValue.data1 = sensorReadingRes.Data1
 			sdrRecordAndValue.data2 = sensorReadingRes.Data2
 		} else {
-			res, avai := calCompactSensorValue(compactSensor, sensorReadingRes.SensorReading)
+			res, _ := calCompactSensorValue(compactSensor, sensorReadingRes.SensorReading)
 			sdrRecordAndValue.sensorStatDesc, sdrRecordAndValue.sensorEvent = GetSensorStatDesc(compactSensor.ReadingType, compactSensor.SensorType, sensorReadingRes.Data1, sensorReadingRes.Data2)
-			sdrRecordAndValue.avail = avai
+			sdrRecordAndValue.avail = true
 			sdrRecordAndValue.value = res
 			sdrRecordAndValue.data1 = sensorReadingRes.Data1
 			sdrRecordAndValue.data2 = sensorReadingRes.Data2
@@ -237,7 +239,7 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 func calFullSensorValue(sdrRecord SDRRecord, sensorReading uint8) (float64, bool) {
 	if fullSensor, err := sdrRecord.(*SDRFullSensor); err {
 		var result float64 = 0.0
-		var avail bool
+		var analog bool = false
 		//threshold type
 		if fullSensor.ReadingType == SENSOR_READTYPE_THREADHOLD {
 			// has analog value
@@ -255,51 +257,46 @@ func calFullSensorValue(sdrRecord SDRRecord, sensorReading uint8) (float64, bool
 					result = (float64(int8(m)*int8(sensorReading)) + float64(b)*math.Pow(10, float64(rexp))) * math.Pow(10, float64(bexp))
 					break
 				}
-				avail = true
-			} else {
-				avail = false
+				analog = true
 			}
 		}
-		return result, avail
+		return result, analog
 	}
 
 	return float64(0), false
 }
 func calCompactSensorValue(sdrRecord SDRRecord, sensorReading uint8) (float64, bool) {
 	var value float64 = 0.0
-	var avail bool = false
+	//non-threshold reading type always has_analog_value == false
+	var analog bool = false
 	if compactSensor, err := sdrRecord.(*SDRCompactSensor); err {
 		//threshold type
 		if compactSensor.ReadingType == SENSOR_READTYPE_THREADHOLD {
 			// has analog value
 			if compactSensor.Unit&0xc0 == 0xc0 {
-				avail = true
+				analog = true
 				value = float64(sensorReading)
 			} else {
-				avail = false
+				analog = false
 				value = 0.0
 			}
 		} else if compactSensor.ReadingType == SENSOR_READTYPE_SENSORSPECIF {
 			// has analog value
 			if compactSensor.Unit&0xc0 == 0xc0 {
-				avail = true
 				value = float64(sensorReading)
 			} else {
-				avail = false
 				value = 0.0
 			}
-		} else if compactSensor.ReadingType >= SENSOR_READTYPE_GENERIC_L && compactSensor.ReadingType <= SENSOR_READTYPE_GENERIC_L {
+		} else if compactSensor.ReadingType >= SENSOR_READTYPE_GENERIC_L && compactSensor.ReadingType <= SENSOR_READTYPE_GENERIC_H {
 			// has analog value
 			if compactSensor.Unit&0xc0 == 0xc0 {
-				avail = true
 				value = float64(sensorReading)
 			} else {
-				avail = false
 				value = 0.0
 			}
 		}
 	}
-	return value, avail
+	return value, analog
 }
 
 //Get Sensor Reading  35.14
