@@ -458,6 +458,7 @@ func (r *SDRFullSensor) GetMBExp() (M int16, B int16, Bexp int8, Rexp int8) {
 }
 
 // calculate the given value into the SDR reading value, using current M,B,Bexp,Rexp setting
+// 36.3
 func (r *SDRFullSensor) CalValue(value float64) uint8 {
 	M, B, Bexp, Rexp := r.GetMBExp()
 	if M == 0 {
@@ -493,7 +494,7 @@ func (r *SDRFullSensor) CalValue(value float64) uint8 {
 //parse id string len, get type and actual len
 // section 43.15
 func parseIdLen(len uint8) uint8 {
-	return len & 0x0f
+	return len & 0x1f
 }
 
 func generateIdLen(len uint8) uint8 {
@@ -571,9 +572,8 @@ type sdrCompactSensorFields struct { //size 26
 	SensorRecSharing     uint16
 	PThresHysteresisVal  uint8
 	NThresHysteresisVal  uint8
-	Reserved             [2]byte
+	Reserved             [3]byte
 	OEM                  uint8
-	IDStringTypeLen      uint8
 }
 type SDRCompactSensor struct {
 	SDRRecordHeader

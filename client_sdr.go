@@ -207,8 +207,10 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 			sdrRecordAndValue.sensorStatDesc, sdrRecordAndValue.sensorEvent = GetSensorStatDesc(fullSensor.ReadingType, fullSensor.SensorType, sensorReadingRes.Data1, sensorReadingRes.Data2)
 			sdrRecordAndValue.avail = true
 			sdrRecordAndValue.value = res
+			sdrRecordAndValue.data1 = sensorReadingRes.Data1
+			sdrRecordAndValue.data2 = sensorReadingRes.Data2
 		}
-		return sdrRecordAndValue, err
+		return sdrRecordAndValue, nil
 	} else if recordType == SDR_RECORD_TYPE_COMPACT_SENSOR {
 		//Unmarshalbinary and assert
 		compactSensor, _ := NewSDRCompactSensor(0, "")
@@ -220,8 +222,6 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 			sdrRecordAndValue.value = 0.00
 			sdrRecordAndValue.sensorStatDesc = "ns"
 			sdrRecordAndValue.sensorEvent = []string{""}
-			sdrRecordAndValue.data1 = sensorReadingRes.Data1
-			sdrRecordAndValue.data2 = sensorReadingRes.Data2
 		} else {
 			res, _ := calCompactSensorValue(compactSensor, sensorReadingRes.SensorReading)
 			sdrRecordAndValue.sensorStatDesc, sdrRecordAndValue.sensorEvent = GetSensorStatDesc(compactSensor.ReadingType, compactSensor.SensorType, sensorReadingRes.Data1, sensorReadingRes.Data2)
@@ -230,7 +230,7 @@ func (c *Client) CalSdrRecordValue(recordType uint8, recordKeyBody_Data *bytes.B
 			sdrRecordAndValue.data1 = sensorReadingRes.Data1
 			sdrRecordAndValue.data2 = sensorReadingRes.Data2
 		}
-		return sdrRecordAndValue, err
+		return sdrRecordAndValue, nil
 	} else {
 		return sdrRecordAndValue, errors.New(fmt.Sprintf("Unsupport Record Type %d", recordType))
 	}
@@ -245,6 +245,7 @@ func calFullSensorValue(sdrRecord SDRRecord, sensorReading uint8) (float64, bool
 			// has analog value
 			if fullSensor.Unit&0xc0 != 0xc0 {
 				m, b, bexp, rexp := fullSensor.GetMBExp()
+				//fmt.Printf("MTol:%d Bacc:%d Acc:%d RBexp:%d  M:%d B:%d BEXP:%d REXP:%d Unit:%d\n",fullSensor.MTol, fullSensor.Bacc, fullSensor.Acc, fullSensor.RBexp,  m,b,bexp,rexp, fullSensor.Unit)
 				switch (fullSensor.Unit & 0xc0) >> 6 {
 				case 0:
 					result = (float64(m)*float64(sensorReading) + float64(b)*math.Pow(10, float64(bexp))) * math.Pow(10, float64(rexp))
@@ -254,7 +255,8 @@ func calFullSensorValue(sdrRecord SDRRecord, sensorReading uint8) (float64, bool
 						sensorReading++
 					}
 				case 2:
-					result = (float64(int8(m)*int8(sensorReading)) + float64(b)*math.Pow(10, float64(rexp))) * math.Pow(10, float64(bexp))
+					result = (float64(float64(m)*float64(int8(sensorReading))) + float64(b)*math.Pow(10, float64(bexp))) * math.Pow(10, float64(rexp))
+					//result = (float64(int8(m)*int8(sensorReading)) + float64(b)*math.Pow(10, float64(bexp))) * math.Pow(10, float64(rexp))
 					break
 				}
 				analog = true
@@ -309,8 +311,8 @@ func (c *Client) getSensorReading(sensorNum uint8) (*GetSensorReadingResponse, e
 		},
 	}
 	res := &GetSensorReadingResponse{}
-	c.Send(req, res)
-	if res == nil {
+	err := c.Send(req, res)
+	if err != nil {
 		return nil, ErrNotFoundTheSensorNum
 	}
 	//if (res.ReadingAvail & 0x20) == 0 {

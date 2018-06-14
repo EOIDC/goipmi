@@ -160,6 +160,19 @@ func TestSimulatorSDR_L_GetMBExp(t *testing.T) {
 	assert.Equal(t, int8(-2), re3)
 }
 
+func TestGetMBExp(t *testing.T) {
+	r, _ := NewSDRFullSensor(2, "Inlet Temp")
+	r.MTol = 0x0064
+	r.Bacc = 0x0000
+	r.Acc = 0x00
+	r.RBexp = 0xe0
+	m,b,be,re := r.GetMBExp()
+	assert.Equal(t, int16(100), m)
+	assert.Equal(t, int16(0), b)
+	assert.Equal(t, int8(0), be)
+	assert.Equal(t, int8(-2), re)
+}
+
 func TestSimulatorSDR_L_CalValue1(t *testing.T) {
 	r, _ := NewSDRFullSensor(2, "System 3.3V")
 	//r.Unit = 0x80 //2's complement signed
