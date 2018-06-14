@@ -88,3 +88,32 @@ func (r *GetSDRCommandResponse) UnmarshalBinary(data []byte) error {
 	r.ReadData = data[3:]
 	return nil
 }
+
+// 35.14 Data2 is Optional, so we have to implement UnmarshalBinary manually
+func (r *GetSensorReadingResponse) UnmarshalBinary(data []byte) error {
+	buffer := bytes.NewBuffer(data)
+	var err error
+	err = binary.Read(buffer, binary.LittleEndian, &r.CompletionCode)
+	if err != nil {
+		return err
+	}
+
+	err = binary.Read(buffer, binary.LittleEndian, &r.SensorReading)
+	if err != nil {
+		return err
+	}
+
+	err = binary.Read(buffer, binary.LittleEndian, &r.ReadingAvail)
+	if err != nil {
+		return err
+	}
+
+	err = binary.Read(buffer, binary.LittleEndian, &r.Data1)
+	if err != nil {
+		return err
+	}
+
+	r.Data2 = uint8(0)
+	binary.Read(buffer, binary.LittleEndian, &r.Data2)
+	return nil
+}
